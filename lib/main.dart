@@ -125,7 +125,7 @@ class _GameHomePageState extends State<GameHomePage> {
   @override
   void initState() {
     super.initState();
-    _playBackgroundMusic(); 
+    _playBackgroundMusic();
     locationProducts = {}; // Initialize locationProducts as an empty map
     locations = widget.locations;
     inventory = {}; // Initialize the inventory in initState
@@ -143,44 +143,46 @@ class _GameHomePageState extends State<GameHomePage> {
   // ... (other functions) ...
 
   void _showAnimationOverlay(String option) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Center(
-        child: Container(
-          width: 200,
-          height: 200,
-          color: Colors.black54,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedIcon(
-                icon: option == 'MARTA'
-                    ? AnimatedIcons.train
-                    : option == 'Ryde'
-                        ? AnimatedIcons.taxi
-                        : AnimatedIcons.car_travel,
-                progress: AlwaysStoppedAnimation(1), // Always show the end state
-                size: 100,
-                color: Colors.white,
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Traveling...',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-            ],
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: Container(
+            width: 200,
+            height: 200,
+            color: Colors.black54,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedIcon(
+                  icon: option == 'MARTA'
+                      ? AnimatedIcons.menu_arrow
+                      : option == 'Ryde'
+                          ? AnimatedIcons.menu_arrow
+                          : AnimatedIcons
+                              .menu_arrow, // Use menu_arrow for drive
+                  progress:
+                      AlwaysStoppedAnimation(1), // Always show the end state
+                  size: 100,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Traveling...',
+                  style: TextStyle(color: Colors.white, fontSize: 24),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
 
-  Timer(const Duration(seconds: 2), () {
-    Navigator.of(context).pop();
-  });
-}
+    Timer(const Duration(seconds: 2), () {
+      Navigator.of(context).pop();
+    });
+  }
 
   Future<void> _playBackgroundMusic() async {
     AudioPlayer player = AudioPlayer();
@@ -208,7 +210,40 @@ class _GameHomePageState extends State<GameHomePage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(title: Text('Travel to ${location.name}', style: const TextStyle(color: Colors.black)), content: Column(mainAxisSize: MainAxisSize.min, children: options.map((option) {int cost = _getTravelCost(option, location.isCobbCounty);return ListTile(title: Text('$option - \$${cost.toString()}', style: const TextStyle(color: Colors.black)), onTap: () {if (cash >= cost) {setState(() {cash -= cost;selectedLocation = location;if (option == 'Ryde') {isRydeAvailable = false;Timer(const Duration(minutes: 1), () {setState(() {isRydeAvailable = true;});});}});Navigator.of(context).pop();_showAnimationOverlay(option);_checkForPolice(option);} else {Navigator.of(context).pop();_showInsufficientFundsMessage();}});}).toList()),);
+        return AlertDialog(
+          title: Text('Travel to ${location.name}',
+              style: const TextStyle(color: Colors.black)),
+          content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: options.map((option) {
+                int cost = _getTravelCost(option, location.isCobbCounty);
+                return ListTile(
+                    title: Text('$option - \$${cost.toString()}',
+                        style: const TextStyle(color: Colors.black)),
+                    onTap: () {
+                      if (cash >= cost) {
+                        setState(() {
+                          cash -= cost;
+                          selectedLocation = location;
+                          if (option == 'Ryde') {
+                            isRydeAvailable = false;
+                            Timer(const Duration(minutes: 1), () {
+                              setState(() {
+                                isRydeAvailable = true;
+                              });
+                            });
+                          }
+                        });
+                        Navigator.of(context).pop();
+                        _showAnimationOverlay(option);
+                        _checkForPolice(option);
+                      } else {
+                        Navigator.of(context).pop();
+                        _showInsufficientFundsMessage();
+                      }
+                    });
+              }).toList()),
+        );
       },
     );
     _checkGameOver();
@@ -303,9 +338,9 @@ class _GameHomePageState extends State<GameHomePage> {
 
     if (encounterType == 'MARTA' && chance < 6) {
       _showOutcomeDialog(
-          'Caught',
-          'You were caught while running. You lose 7% of your inventory and 2% of your cash.',
-        );
+        'Caught',
+        'You were caught while running. You lose 7% of your inventory and 2% of your cash.',
+      );
       setState(() {
         bookbag = (bookbag * 0.93).toInt();
         cash = (cash * 0.98).toInt();
@@ -324,9 +359,9 @@ class _GameHomePageState extends State<GameHomePage> {
 
     if (encounterType == 'MARTA' && chance < 8) {
       _showOutcomeDialog(
-          'Caught',
-          'You lost the fight. You lose 11% of your inventory and 15% of your cash.',
-        );
+        'Caught',
+        'You lost the fight. You lose 11% of your inventory and 15% of your cash.',
+      );
       setState(() {
         bookbag = (bookbag * 0.89).toInt();
         cash = (cash * 0.85).toInt();
@@ -377,7 +412,6 @@ class _GameHomePageState extends State<GameHomePage> {
       },
     );
   }
-
 
   int _getTravelCost(String option, bool isCobbCounty) {
     final now = DateTime.now();
@@ -504,45 +538,61 @@ class _GameHomePageState extends State<GameHomePage> {
                 final products = locationProducts[location]!;
                 final isSelected = location == selectedLocation;
                 return Card(
-                  margin: const EdgeInsets.all(10),
-                  color: isSelected ? const Color(0xFF3A2C46) : const Color(0xFF2a2438), // Change color if selected
-                  child: ExpansionTile(
-                    title: Text(location.name, style: const TextStyle(color: Colors.white)), 
-                    subtitle: Text(location.description, style: const TextStyle(color: Colors.white)), 
-                    onExpansionChanged: (isExpanded) {
-                      if (isExpanded) {
-                        setState(() {
-                          selectedLocation = location; 
-                        });
-                      } else {
-                        setState(() {
-                          selectedLocation = null; 
-                        });
-                      }
-                    },
-                    initiallyExpanded: isSelected, 
-                    children: isSelected ?
-                      [
-                        ...products.map((product) => ListTile(
-                              title: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('${product.name} - \$${product.basePrice.toInt()}', style: const TextStyle(color: Colors.white)),
-                                  Text('Inventory: ${(inventory[product.name] ?? 0)}', style: const TextStyle(color: Colors.white)), 
-                                ],
-                              ),
-                              trailing: ElevatedButton(
-                                onPressed: () {
-                                  _buyProduct(product);
-                                },
-                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FF9D), foregroundColor: Colors.black),
-                                child: const Text('Buy'),
-                              ),
-                            )),
-                      ] 
-                      : [], 
-                  )
-                );
+                    margin: const EdgeInsets.all(10),
+                    color: isSelected
+                        ? const Color(0xFF3A2C46)
+                        : const Color(0xFF2a2438), // Change color if selected
+                    child: ExpansionTile(
+                      title: Text(location.name,
+                          style: const TextStyle(color: Colors.white)),
+                      subtitle: Text(location.description,
+                          style: const TextStyle(color: Colors.white)),
+                      onExpansionChanged: (isExpanded) {
+                        if (isExpanded) {
+                          setState(() {
+                            selectedLocation = location;
+                          });
+                        } else {
+                          setState(() {
+                            selectedLocation = null;
+                          });
+                        }
+                      },
+                      initiallyExpanded: isSelected,
+                      children: isSelected
+                          ? [
+                              ...products.map((product) => ListTile(
+                                    // Display products for the selected location
+                                    title: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                            '${product.name} - \$${product.basePrice.toInt()}',
+                                            style: const TextStyle(
+                                                color: Colors
+                                                    .white)), // Product name and price
+                                        Text(
+                                            'Inventory: ${(inventory[product] ?? 0)}',
+                                            style: const TextStyle(
+                                                color: Colors
+                                                    .white)), // Inventory quantity for this product
+                                      ],
+                                    ),
+                                    trailing: ElevatedButton(
+                                      onPressed: () {
+                                        _buyProduct(product);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF00FF9D),
+                                          foregroundColor: Colors.black),
+                                      child: const Text('Buy'),
+                                    ),
+                                  )),
+                            ]
+                          : [],
+                    ));
               },
             ),
           ),
@@ -552,86 +602,99 @@ class _GameHomePageState extends State<GameHomePage> {
   }
 
   void _checkGameOver() {
-    if (day > 30) {    
+    if (day > 30) {
       _gameOver('You have run out of days!');
-    } else if (bookbag == 0 && cash < allProducts.map((p) => p.minPrice).reduce(min)) {
-      _gameOver('You are out of product and do not have enough cash to buy more!');
-    } else if (cash <= 0 && bookbag == 0 && inventory.values.every((quantity) => quantity == 0)) {
+    } else if (bookbag == 0 &&
+        cash < allProducts.map((p) => p.minPrice).reduce(min)) {
+      _gameOver(
+          'You are out of product and do not have enough cash to buy more!');
+    } else if (cash <= 0 &&
+        bookbag == 0 &&
+        inventory.values.every((quantity) => quantity == 0)) {
       _gameOver('You have no cash, no product, and an empty bookbag!');
     }
   }
 
   void _gameOver(String message) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Game Over', style: TextStyle(color: Colors.black)),
-        content: Text(message, style: const TextStyle(color: Colors.black)),
-        actions: [
-          TextButton(
-            child: const Text('Restart', style: TextStyle(color: Colors.black)),
-            onPressed: () {
-              Navigator.of(context).pop();
-              _restartGame();
-            },
-          ),
-          TextButton(
-            child: const Text('Exit', style: TextStyle(color: Colors.black)),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Optionally, you can exit the app or navigate to a different screen
-            },
-          ),
-        ],
-      );
-    },
-  );
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Game Over', style: TextStyle(color: Colors.black)),
+          content: Text(message, style: const TextStyle(color: Colors.black)),
+          actions: [
+            TextButton(
+              child:
+                  const Text('Restart', style: TextStyle(color: Colors.black)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _restartGame();
+              },
+            ),
+            TextButton(
+              child: const Text('Exit', style: TextStyle(color: Colors.black)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Optionally, you can exit the app or navigate to a different screen
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
-void _restartGame() {
-  setState(() {
-    cash = 4000;
-    debt = 10000;
-    bookbag = 100;
-    day = 1;
-    selectedLocation = null;
-    isRydeAvailable = true;
+  void _restartGame() {
+    setState(() {
+      cash = 4000;
+      debt = 10000;
+      bookbag = 100;
+      day = 1;
+      selectedLocation = null;
+      isRydeAvailable = true;
 
-    // Reset inventory
-    inventory = {
-      'Blunts/Pre Rolls': 0,
-      'Oxy': 0,
-      'Shrooms': 0,
-      'Powda': 0,
-      'Acid': 0,
-    };
+      // Reset inventory
+      inventory = {for (var product in allProducts) product: 0};
+    });
 
     // Reassign random products to each location
+    _resetLocationProducts();
+  }
+
+  void _resetLocationProducts() {
     final random = Random();
     for (var location in locations) {
       locationProducts[location] = [];
       for (var i = 0; i < random.nextInt(3) + 2; i++) {
-        locationProducts[location]!.add(allProducts[random.nextInt(allProducts.length)]);
+        locationProducts[location]!
+            .add(allProducts[random.nextInt(allProducts.length)]);
       }
     }
-  });
-}
+  }
 
   void _buyProduct(Product product) {
     if (cash >= product.basePrice.toInt()) {
       setState(() {
-        if (bookbag > 0) {  // Check if there's space in the bookbag
+        if (bookbag > 0) {
+          // Check if there's space in the bookbag
           cash -= product.basePrice.toInt();
-          inventory.update(product.name, (value) => value + 1, ifAbsent: () => 1);
+          inventory.update(product, (value) => value + 1, ifAbsent: () => 1);
           bookbag--; // Decrease bookbag space by 1
         } else {
           // Handle case where bookbag is full
           showDialog(
             context: context,
             builder: (BuildContext context) {
-              return AlertDialog(title: const Text('Bookbag Full'), content: const Text('Your bookbag is full. You need a bigger bookbag to carry more items.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]);
+              return AlertDialog(
+                  title: const Text('Bookbag Full'),
+                  content: const Text(
+                      'Your bookbag is full. You need a bigger bookbag to carry more items.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'))
+                  ]);
             },
           );
         }
@@ -643,50 +706,16 @@ void _restartGame() {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Insufficient Funds or Bookbag Space'),
-            content: const Text('You do not have enough cash or bookbag space to purchase this item.'),
-            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+            content: const Text(
+                'You do not have enough cash or bookbag space to purchase this item.'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'))
+            ],
           );
         },
       );
     }
-  }
-
-  void _showPurchaseOptions() {
-    if (selectedLocation?.name == 'Little Five Points') {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Purchase Options'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildPurchaseOption('Bookbag (250 capacity)', 400, 250),
-                _buildPurchaseOption('Bookbag (600 capacity)', 1000, 600),
-                _buildPurchaseOption('Bookbag (1000 capacity)', 3000, 1000),
-              ],
-            ),
-          );
-        },
-      );
-    }
-  }
-
-  Widget _buildPurchaseOption(String name, int cost, int newCapacity) {
-    return ListTile(
-      title: Text('$name - \$$cost'),
-      onTap: () {
-        if (cash >= cost) {
-          setState(() {
-            cash -= cost;
-            bookbag = newCapacity;
-          });
-          Navigator.of(context).pop(); // Close the dialog
-        } else {
-          // Handle insufficient funds
-          // (e.g., show a message to the user)
-        }
-      },
-    );
   }
 }
