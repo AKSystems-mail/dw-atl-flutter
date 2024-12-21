@@ -7,31 +7,67 @@ void main() {
   runApp(const DopeWarsAtlanta());
 }
 
+enum MarketCondition {
+  normal,
+  highDemand,
+  flooded,
+}
+
 class Location {
   final String name;
   final String description;
   final bool isCobbCounty;
+  final MarketCondition marketCondition; 
+  List<Product> products;
+  List<Weapon> weapons;
 
   Location({
     required this.name,
     required this.description,
-    this.isCobbCounty = false,
+    this.isCobbCounty = false, 
+    this.marketCondition = MarketCondition.normal, // Default to normal
+    this.products = const [],
+    this.weapons = const [],
   });
 }
 
+class Weapon { 
+  final String name; 
+  final int price; 
+  final double winChance; 
+  final Duration cooldown; 
+
+  Weapon({required this.name, required this.price, required this.winChance, required this.cooldown}); 
+}
+
+
 class Product {
-  String name;
-  double basePrice;
-  double minPrice;
-  double maxPrice;
+  final String name;
+  double basePrice; 
+  final double minPrice;
+  final double maxPrice;
 
   Product({
     required this.name,
     required this.basePrice,
     required this.minPrice,
-    required this.maxPrice,
+    required this.maxPrice, 
   });
-}
+
+  Product copyWith({
+    String? name,
+    double? basePrice,
+    double? minPrice,
+    double? maxPrice,
+  }) {
+    return Product(
+      name: name ?? this.name,
+      basePrice: basePrice ?? this.basePrice,
+      minPrice: minPrice ?? this.minPrice,
+      maxPrice: maxPrice ?? this.maxPrice,
+    );
+  }
+} 
 
 class DopeWarsAtlanta extends StatelessWidget {
   const DopeWarsAtlanta({super.key});
@@ -114,6 +150,7 @@ class GameHomePage extends StatefulWidget {
 class _GameHomePageState extends State<GameHomePage> {
   late List<Location> locations;
   late Map<Location, List<Product>> locationProducts;
+  late Map<Location, List<Weapon>> locationWeapons; // New map for weapons
   Location? selectedLocation;
   int cash = 4000;
   int debt = 10000;
@@ -121,89 +158,87 @@ class _GameHomePageState extends State<GameHomePage> {
   int day = 1;
   Map<Product, int> inventory = {}; // Initialize inventory map
   bool isRydeAvailable = true;
+  bool hasBeenRobbed = false; // Flag to track if the player has been robbed
+
+  int gspChaseChance = 6; // Initial chance of GSP chase
+  int undercoverCopChance = 3; // Initial chance of undercover cop encounter
+
+  DateTime? weaponCooldownEndTime; 
+
+  bool isTraveling = false; // Flag to indicate if traveling animation is shown
+  
+  // Weapons 
+  final fists = Weapon(name: 'Fists', price: 0, winChance: 0.45, cooldown: const Duration(minutes: 2));
+  final blicky = Weapon(name: 'Blicky', price: 300, winChance: 0.52, cooldown: const Duration(minutes: 2));
+  final strap = Weapon(name: 'Strap', price: 550, winChance: 0.63, cooldown: const Duration(minutes: 2));
+  final draco = Weapon(name: 'Draco', price: 3000, winChance: 0.77, cooldown: const Duration(minutes: 2)); 
+
+  Weapon? selectedWeapon;  // Default to fists will be set in initState
+  bool isWeaponAvailable = true;
+
+  // Function to check if the game is over
+  void _updateProductPrices(Location location) {
+    setState(() {
+      final random = Random();
+      locationProducts[location] = locationProducts[location]!.map((product) {
+        switch (location.marketCondition) {
+          case MarketCondition.highDemand:
+            return product.copyWith(basePrice: product.maxPrice);
+          case MarketCondition.flooded:
+            return product.copyWith(basePrice: product.minPrice);
+          case MarketCondition.normal:
+          return product.copyWith(
+                basePrice: random.nextDouble() *
+                        (product.maxPrice - product.minPrice) +
+                    product.minPrice);
+        }
+      }).toList();
+    });
+  }
+
+  void _buyWeapon(Weapon weapon) {
+    // ... (Your existing _buyWeapon implementation) ...
+  }
+
+  void _checkGameOver() {
+    // ... (Your existing _checkGameOver implementation) ...
+  }
 
   @override
   void initState() {
     super.initState();
     _playBackgroundMusic();
+    locationWeapons = {}; // Initialize locationWeapons
     locationProducts = {}; // Initialize locationProducts as an empty map
     locations = widget.locations;
-    inventory = {}; // Initialize the inventory in initState
+    inventory = {for (var product in allProducts) product: 0}; 
 
     final random = Random();
     for (var location in locations) {
       locationProducts[location] = [];
-      for (var i = 0; i < random.nextInt(3) + 2; i++) {
-        locationProducts[location]!
-            .add(allProducts[random.nextInt(allProducts.length)]);
+      locationWeapons[location] = []; // Initialize for each location
+      final availableProducts = List<Product>.from(allProducts);
+      for (var i = 0; i < random.nextInt(3) + 2; i++) { 
+        if (availableProducts.isEmpty) break;
+        final product = availableProducts.removeAt(random.nextInt(availableProducts.length));
+        locationProducts[location]!.add(product);
+      }
+      // Add weapons to the 'West End' location
+      if (location.name == 'West End') {
+        locationProducts[location]!.addAll([blicky, strap, draco]); 
       }
     }
+    // Set prices after they are added
+    selectedWeapon = fists;
+    _updateProductPrices(location); 
   }
 
   // ... (other functions) ...
-
-  void _showAnimationOverlay(String option) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Center(
-          child: Container(
-            width: 200,
-            height: 200,
-            color: Colors.black54,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedIcon(
-                  icon: option == 'MARTA'
-                      ? AnimatedIcons.menu_arrow
-                      : option == 'Ryde'
-                          ? AnimatedIcons.menu_arrow
-                          : AnimatedIcons
-                              .menu_arrow, // Use menu_arrow for drive
-                  progress:
-                      AlwaysStoppedAnimation(1), // Always show the end state
-                  size: 100,
-                  color: Colors.white,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Traveling...',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    Timer(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
-    });
-  }
 
   Future<void> _playBackgroundMusic() async {
     AudioPlayer player = AudioPlayer();
     await player.play(AssetSource('background_music.mp3'));
     player.setReleaseMode(ReleaseMode.loop);
-
-    // Ensure the player is released when the game is closed
-    // (e.g., in the dispose method of your stateful widget)
-    // player.dispose();
-  }
-
-  void travel(Location location) async {
-    if (location.isCobbCounty) {
-      _showTravelOptions(location, ['Ryde', 'Drive']);
-    } else {
-      _showTravelOptions(location, ['MARTA', 'Ryde', 'Drive']);
-    }
-    setState(() {
-      day += 1;
-    });
-    _checkGameOver();
   }
 
   void _showTravelOptions(Location location, List<String> options) {
@@ -237,6 +272,7 @@ class _GameHomePageState extends State<GameHomePage> {
                         Navigator.of(context).pop();
                         _showAnimationOverlay(option);
                         _checkForPolice(option);
+                        _updateProductPrices(location);
                       } else {
                         Navigator.of(context).pop();
                         _showInsufficientFundsMessage();
@@ -255,12 +291,12 @@ class _GameHomePageState extends State<GameHomePage> {
 
     switch (option) {
       case 'MARTA':
-        if (chance < 3) {
+        if (chance < undercoverCopChance) { // Using undercoverCopChance for MARTA police
           _handlePoliceEncounter('MARTA');
         }
         break;
       case 'Ryde':
-        if (chance < 3) {
+        if (chance < undercoverCopChance) {
           _handlePoliceEncounter('Ryde');
         }
         break;
@@ -272,6 +308,7 @@ class _GameHomePageState extends State<GameHomePage> {
     }
   }
 
+  // Function to handle police encounter outcomes
   void _handlePoliceEncounter(String option) {
     switch (option) {
       case 'MARTA':
@@ -353,11 +390,32 @@ class _GameHomePageState extends State<GameHomePage> {
     _checkGameOver();
   }
 
-  void _fightPolice(String encounterType) {
-    final random = Random();
-    int chance = random.nextInt(100);
+  void _fightPolice(String encounterType) async {
+    if (weaponCooldownEndTime != null && weaponCooldownEndTime!.isAfter(DateTime.now())) {
+      _showOutcomeDialog('Weapon on Cooldown', 'Your weapon is on cooldown. You cannot fight.');
+      return;
+    }
 
-    if (encounterType == 'MARTA' && chance < 8) {
+    final random = Random();
+    final winChance = selectedWeapon?.winChance ?? fists.winChance; // Default to fists if no weapon selected
+    final didWin = random.nextDouble() < winChance; 
+
+    if (didWin) {
+      _showOutcomeDialog('Escaped', 'You successfully fought off the police.');
+
+       // Start weapon cooldown
+      setState(() {
+        weaponCooldownEndTime = DateTime.now().add(selectedWeapon?.cooldown ?? fists.cooldown); 
+      });
+
+      Timer(selectedWeapon?.cooldown ?? fists.cooldown, () {
+        setState(() {
+          weaponCooldownEndTime = null;
+          isWeaponAvailable = true;
+        });
+      });
+
+    } else {
       _showOutcomeDialog(
         'Caught',
         'You lost the fight. You lose 11% of your inventory and 15% of your cash.',
@@ -366,11 +424,8 @@ class _GameHomePageState extends State<GameHomePage> {
         bookbag = (bookbag * 0.89).toInt();
         cash = (cash * 0.85).toInt();
       });
-    } else {
-      _checkGameOver();
-      _showOutcomeDialog('Escaped', 'You successfully fought off the police.');
     }
-    _checkGameOver();
+    _checkGameOver(); 
   }
 
   void _bribePolice() {
@@ -393,25 +448,11 @@ class _GameHomePageState extends State<GameHomePage> {
     }
   }
 
+  // Function to show the outcome of a police encounter
   void _showOutcomeDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title, style: const TextStyle(color: Colors.black)),
-          content: Text(content, style: const TextStyle(color: Colors.black)),
-          actions: [
-            TextButton(
-              child: const Text('OK', style: TextStyle(color: Colors.black)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+    // ... (Your existing _showOutcomeDialog implementation) ...
   }
+
 
   int _getTravelCost(String option, bool isCobbCounty) {
     final now = DateTime.now();
@@ -463,6 +504,7 @@ class _GameHomePageState extends State<GameHomePage> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -534,65 +576,99 @@ class _GameHomePageState extends State<GameHomePage> {
             child: ListView.builder(
               itemCount: locations.length,
               itemBuilder: (context, index) {
-                final location = locations[index];
-                final products = locationProducts[location]!;
-                final isSelected = location == selectedLocation;
-                return Card(
-                    margin: const EdgeInsets.all(10),
-                    color: isSelected
-                        ? const Color(0xFF3A2C46)
-                        : const Color(0xFF2a2438), // Change color if selected
-                    child: ExpansionTile(
-                      title: Text(location.name,
-                          style: const TextStyle(color: Colors.white)),
-                      subtitle: Text(location.description,
-                          style: const TextStyle(color: Colors.white)),
-                      onExpansionChanged: (isExpanded) {
-                        if (isExpanded) {
-                          setState(() {
-                            selectedLocation = location;
-                          });
-                        } else {
-                          setState(() {
-                            selectedLocation = null;
-                          });
-                        }
-                      },
-                      initiallyExpanded: isSelected,
-                      children: isSelected
-                          ? [
-                              ...products.map((product) => ListTile(
-                                    // Display products for the selected location
-                                    title: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                            '${product.name} - \$${product.basePrice.toInt()}',
-                                            style: const TextStyle(
-                                                color: Colors
-                                                    .white)), // Product name and price
-                                        Text(
-                                            'Inventory: ${(inventory[product] ?? 0)}',
-                                            style: const TextStyle(
-                                                color: Colors
-                                                    .white)), // Inventory quantity for this product
-                                      ],
-                                    ),
-                                    trailing: ElevatedButton(
-                                      onPressed: () {
-                                        _buyProduct(product);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xFF00FF9D),
-                                          foregroundColor: Colors.black),
-                                      child: const Text('Buy'),
-                                    ),
-                                  )),
-                            ]
-                          : [],
-                    ));
+                final location = locations[index]; 
+                final isSelected = location == selectedLocation; 
+                
+                return Card( 
+                  margin: const EdgeInsets.all(10),
+                  color: isSelected
+                      ? const Color(0xFF3A2C46)
+                      : const Color(0xFF2a2438), // Change color if selected
+                  child: ExpansionTile(
+                    title: Text(location.name,
+                        style: const TextStyle(color: Colors.white)),
+                    subtitle: Text(location.description,
+                        style: const TextStyle(color: Colors.white)),
+                    onExpansionChanged: (isExpanded) {
+                      if (isExpanded) {
+                        setState(() {
+                          selectedLocation = location;
+                        });
+                        travel(location); // Trigger travel options pop-up
+                      } else {
+                        setState(() {
+                          selectedLocation = null;
+                        });
+                      }
+                    },
+                    initiallyExpanded: isSelected,
+                    children: [
+                      // Display products for the location
+                      ...location.products.map((product) => ListTile(
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${product.name} - \$${product.basePrice.toInt()}', style: const TextStyle(color: Colors.white)),
+                            Text('Inventory: ${(inventory[product] ?? 0)}', style: const TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                _buyProduct(product);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00FF9D),
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Buy'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                _sellProduct(product); 
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFF00F7),
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Sell'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                _sellAllProducts(product);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFF00F7),
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Sell All'),
+                            ),
+                          ],
+                        ),
+                      )),
+
+                      // Display weapons if the location is 'West End'
+                      if (location.name == 'West End')
+                        ...location.weapons.map((weapon) => ListTile(
+                          title: Text('${weapon.name} - \$${weapon.price}', style: const TextStyle(color: Colors.white)),
+                          trailing: ElevatedButton(
+                            onPressed: () {
+                              _buyWeapon(weapon);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00FF9D),
+                              foregroundColor: Colors.black,
+                            ),
+                            child: const Text('Buy'),
+                          ),
+                        )),
+                    ],
+                  ),
+                );
               },
             ),
           ),
@@ -653,6 +729,7 @@ class _GameHomePageState extends State<GameHomePage> {
       day = 1;
       selectedLocation = null;
       isRydeAvailable = true;
+      hasBeenRobbed = false; // Reset robbery flag
 
       // Reset inventory
       inventory = {for (var product in allProducts) product: 0};
@@ -663,14 +740,40 @@ class _GameHomePageState extends State<GameHomePage> {
   }
 
   void _resetLocationProducts() {
-    final random = Random();
+    final rand = Random();
     for (var location in locations) {
-      locationProducts[location] = [];
-      for (var i = 0; i < random.nextInt(3) + 2; i++) {
-        locationProducts[location]!
-            .add(allProducts[random.nextInt(allProducts.length)]);
+      locationProducts[location] = []; 
+      final availableProducts = List<Product>.from(allProducts); 
+      for (var i = 0; i < rand.nextInt(3) + 2; i++) { 
+        if (availableProducts.isEmpty) break;
+        final productIndex = rand.nextInt(availableProducts.length);
+        final product = availableProducts[productIndex];
+
+        // Determine market conditions
+        final isHighDemand = rand.nextInt(100) < 20; // 20% chance of high demand
+        final isFlooded = rand.nextInt(100) < 10; // 10% chance of flooded market
+
+        // Adjust price based on market conditions
+        double adjustedPrice = product.basePrice;
+        if (isHighDemand) {
+          adjustedPrice = product.maxPrice;
+        } else if (isFlooded) {
+          adjustedPrice = product.minPrice;
+        }
+
+        // Create a copy of the product with the adjusted price
+        final adjustedProduct = Product(
+          name: product.name,
+          basePrice: adjustedPrice,
+          minPrice: product.minPrice,
+          maxPrice: product.maxPrice,
+        );
+
+        locationProducts[location]!.add(adjustedProduct);
+        availableProducts.removeAt(productIndex); // Remove to avoid duplicates
       }
     }
+
   }
 
   void _buyProduct(Product product) {
@@ -718,4 +821,152 @@ class _GameHomePageState extends State<GameHomePage> {
       );
     }
   }
+
+  void _showAnimationOverlay(String option) {
+    IconData icon;
+    switch (option) {
+      case 'MARTA':
+        icon = Icons.train;
+        break;
+      case 'Ryde':
+        icon = Icons.local_taxi;
+        break;
+      case 'Drive':
+        icon = Icons.drive_eta;
+        break;
+      default:
+        icon = Icons.directions; // Default icon
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: Container(
+            width: 200,
+            height: 200,
+            color: Colors.black54,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 100,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Traveling...',
+                  style: TextStyle(color: Colors.white, fontSize: 24),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    Timer(const Duration(seconds: 5), () {
+      Navigator.of(context).pop();
+    });
+  }
+
+  void travel(Location location) async {  
+  if (location.isCobbCounty) {  
+    _showTravelOptions(location, ['Ryde', 'Drive']);  
+  } else {  
+    _showTravelOptions(location, ['MARTA', 'Ryde', 'Drive']);  
+  }  
+  setState(() {  
+    day += 1;  
+    debt = (debt * 1.02).toInt(); // Increase debt by 2%  
+  });  
+
+  if (location.name == 'Midtown') {  
+    _checkWaterBoys();  
+  } else if (location.name == 'West End') {  
+    _checkYNs();  
+  } else if (location.name == 'Buckhead') {  
+    _showPayDebtOption();  
+  }  
+
+  _checkGameOver();  
 }
+
+void _showPayDebtOption() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Pay Debt?', style: TextStyle(color: Colors.black)),
+        content: const Text('Do you want to pay off some of your debt?', style: TextStyle(color: Colors.black)),
+        actions: [
+          TextButton(
+            child: const Text('Yes', style: TextStyle(color: Colors.black)),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _payDebt();
+            },
+          ),
+          TextButton(
+            child: const Text('No', style: TextStyle(color: Colors.black)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _payDebt() {
+  int amountToPay = cash ~/ 2; // Pay half of current cash
+  setState(() {
+    cash -= amountToPay;
+    debt -= amountToPay;
+    _reducePoliceEncounterChances(); // Reduce chances after paying debt
+  });
+}
+
+void _reducePoliceEncounterChances() {
+  setState(() {
+    gspChaseChance = (gspChaseChance * 0.9).toInt(); // Reduce by 10%
+    undercoverCopChance = (undercoverCopChance * 0.9).toInt(); // Reduce by 10%
+  });
+}
+
+void _showPayDebtOption() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Pay Debt?', style: TextStyle(color: Colors.black)),
+        content: const Text('Do you want to pay off some of your debt?', style: TextStyle(color: Colors.black)),
+        actions: [
+          TextButton(
+            child: const Text('Yes', style: TextStyle(color: Colors.black)),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _payDebt();
+            },
+          ),
+          TextButton(
+            child: const Text('No', style: TextStyle(color: Colors.black)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  }
+
+
+  void _sellProduct(Product product, int quantity) {
+    // Implement selling logic here
+  }
+
+  void _sellAllProducts() {
+    // Implement selling all products logic here
+  }
