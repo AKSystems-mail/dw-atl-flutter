@@ -876,91 +876,106 @@ class _GameHomePageState extends State<GameHomePage> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: locations.length,
-              itemBuilder: (context, index) {
-                final location = locations[index];
-                final isSelected = location == selectedLocation;
-                return Card(
-                  margin: const EdgeInsets.all(10),
-                  color: isSelected ? const Color(0xFF3A2C46) : const Color(0xFF2a2438), // Change color if selected
-                  child: ExpansionTile(
-                    title: Text(location.name, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(location.description, style: const TextStyle(color: Colors.white)),
-                    onExpansionChanged: (isExpanded) {
-                      if (isExpanded) {
-                        setState(() {
-                          selectedLocation = location;
-                        });
-                        travel(location); // Trigger travel options pop-up
-                      } else {
-                        setState(() {
-                          selectedLocation = null;
-                        });
-                      }
-                    },
-                    initiallyExpanded: isSelected,
-                    children: isSelected
-                        ? [
-                            ...location.products.map((product) => ListTile(
-                                  // Display products for the selected location
-                                  title: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('${product.name} - \$${product.basePrice.toInt()}', style: const TextStyle(color: Colors.white)), // Product name and price
-                                      Text('Inventory: ${(inventory[product] ?? 0)}', style: const TextStyle(color: Colors.white)), // Inventory quantity for this product
-                                    ],
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          _buyProduct(product);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF00FF9D), foregroundColor: Colors.black),
-                                        child: const Text('Buy'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          _sellProduct(product);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFFFF00F7), foregroundColor: Colors.black),
-                                        child: const Text('Sell'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          _sellAllProducts(product);
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFFFF00F7), foregroundColor: Colors.black),
-                                        child: const Text('Sell All'),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                            if (location.name == 'West End')
-                              ...location.weapons.map((weapon) => ListTile(
-                                    // Display weapons for the West End location
-                                    title: Text('${weapon.name} - \$${weapon.price}', style: const TextStyle(color: Colors.white)),
-                                    trailing: ElevatedButton(
-                                      onPressed: () {
-                                        _buyWeapon(weapon);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF00FF9D), foregroundColor: Colors.black),
-                                      child: const Text('Buy'),
+            child: ListView.builder( 
+                itemCount: locations.length,
+                itemBuilder: (context, index) {
+                  final location = locations[index];
+                  final isSelected = location == selectedLocation;
+                  return Card(
+                    margin: const EdgeInsets.all(10),
+                    color: isSelected
+                        ? const Color(0xFF3A2C46)
+                        : const Color(0xFF2a2438), // Change color if selected
+                    child: ExpansionTile(
+                      title: Text(location.name,
+                          style: const TextStyle(color: Colors.white)),
+                      subtitle: Text(location.description,
+                          style: const TextStyle(color: Colors.white)),
+                      onExpansionChanged: (isExpanded) {
+                        if (isExpanded) {
+                          setState(() {
+                            selectedLocation = location;
+                          });
+                          travel(location); // Trigger travel options pop-up
+                        } else {
+                          setState(() {
+                            selectedLocation = null;
+                          });
+                        }
+                      },
+                      initiallyExpanded: isSelected,
+                      children: isSelected
+                          ? [
+                              ...locationProducts[location]!.map((product) => ListTile(
+                                    // Display products for the selected location
+                                    title: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                            '${product.name} - \$${product.basePrice.toInt()}',
+                                            style: const TextStyle(
+                                                color: Colors.white)), // Product name and price
+                                        Text(
+                                            'Inventory: ${(inventory[product] ?? 0)}',
+                                            style: const TextStyle(
+                                                color: Colors.white)), // Inventory quantity for this product
+                                      ],
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            _buyProduct(product);
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF00FF9D),
+                                              foregroundColor: Colors.black),
+                                          child: const Text('Buy'),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            _sellProduct(product); // Ensure the argument is passed
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFFFF00F7),
+                                              foregroundColor: Colors.black),
+                                          child: const Text('Sell'),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            _sellAllProducts(product); // Ensure the argument is passed
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFFFF00F7),
+                                              foregroundColor: Colors.black),
+                                          child: const Text('Sell All'),
+                                        ),
+                                      ],
                                     ),
                                   )),
-                          ]
-                        : [],
-                  ),
-                );
-              },
+                              if (location.name == 'West End')
+                                ...locationWeapons[location]!.map((weapon) => ListTile(
+                                      // Display weapons for the West End location
+                                      title: Text('${weapon.name} - \$${weapon.price}',
+                                          style: const TextStyle(color: Colors.white)),
+                                      trailing: ElevatedButton(
+                                        onPressed: () {
+                                          _buyWeapon(weapon);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF00FF9D),
+                                            foregroundColor: Colors.black),
+                                        child: const Text('Buy'),
+                                      ),
+                                    )),
+                            ]
+                          : [],
+                    ),
+                  );
+                },
             ),
           ),
         ],
